@@ -111,25 +111,60 @@ class People(object):
     def json_data(self):
         return [p.json_data for p in self.people]
 
+    def match_discourse_export_users_by_email(self, export_users):
+        """Given a community.api.ExportList, register community user names
+        and group membership in this People object.
+        """
+        for discourse_user in export_users.users:
+            person = self.get_by_cdb_email(discourse_user.email)
+            if person is None:
+                continue
+            print('Matched {discourse_user.email}'.format(
+                discourse_user=discourse_user))
+            person.community_email = discourse_user.email
+            person.active = True  # they've been seen on community
+            person.community_groups = discourse_user.group_names
+
+    def refresh_community_data(self, export_users):
+        """Update Discourse/Community data about a Person who's already been
+        matched between ContactsDB and the Community IDs.
+
+        Information like username, email and group membership is updated.
+        """
+        for p in self.people:
+            export_user = None
+            if p.username is not None:
+                export_user = export_users.find_by_username(p.username)
+            elif export_user is None and p.community_email is not None:
+                export_user = export_users.find_by_email(p.community_email)
+            if export_user is None:
+                print('Missing {p}'.format(p=p))
+                continue
+
+            # refresh data
+            p.username = export_user.username
+            p.community_email = export_user.email
+            p.community_groups = export_user.group_names
+
     def write_json(self, path):
         with open(path, 'w') as f:
             json.dump(f, self.json_data, sort_keys=True, indent=2)
 
     def get_by_cdb_email(self, email):
         for p in self.people:
-            if p.cdb_email == email:
+            if p.cdb_email == email and email is not None:
                 return p
         return None
 
     def get_by_community_email(self, email):
         for p in self.people:
-            if p.community_email == email:
+            if p.community_email == email and email is not None:
                 return p
         return None
 
     def get_by_username(self, username):
         for p in self.people:
-            if p.username == username:
+            if p.username == username and username is not None:
                 return p
         return None
 
