@@ -2,7 +2,7 @@
 
 import os
 import csv
-# import json
+import json
 from collections import namedtuple
 import requests
 
@@ -74,6 +74,9 @@ class DiscourseUser(object):
         self.data = json_data
         self._email = email
 
+    def __str__(self):
+        return 'DiscourseUser(self.username, self.email)'.format(self=self)
+
     @classmethod
     def from_username(cls, username, email=None):
         r = get('/users/{0}.json'.format(username))
@@ -88,19 +91,51 @@ class DiscourseUser(object):
             return self._email
 
     @property
+    def username(self):
+        return self.data['user']['username']
+
+    @property
     def groups(self):
         return self.data['user']['groups']
 
 
-ExportUser = namedtuple('ExportUser',
-                        ['id', 'name', 'username', 'email', 'title',
-                         'created_at', 'last_seen_at', 'last_posted_at',
-                         'last_emailed_at', 'trust_level', 'approved',
-                         'suspended_at', 'suspended_till', 'blocked',
-                         'active', 'admin', 'moderator', 'ip_address',
-                         'topics_entered', 'posts_read_count', 'time_read',
-                         'topic_count', 'post_count', 'likes_given',
-                         'likes_received', 'Institution', 'group_names'])
+class ExportUser(object):
+    """A User in the Discourse CSV export file."""
+
+    def __init__(self, *args):
+        super().__init__()
+        self.user_id = int(args[0])
+        self.name = args[1]
+        self.username = args[2]
+        self.email = args[3]
+        self.title = args[4]
+        self.created_at = args[5]
+        self.last_seen_at = args[6]
+        self.last_posted_at = args[7]
+        self.last_emailed_at = args[8]
+        self.trust_level = int(args[9])
+        self.approved = json.loads(args[10])
+        self.suspended_at = args[11]
+        self.suspended_till = args[12]
+        self.blocked = json.loads(args[13])
+        self.active = json.loads(args[14])
+        self.admin = json.loads(args[15])
+        self.moderator = json.loads(args[16])
+        self.ip_address = args[17]
+        self.topics_entered = args[18]
+        self.posts_read_count = int(args[19])
+        self.time_read = int(args[20])
+        self.topic_count = int(args[21])
+        self.post_count = int(args[22])
+        self.likes_given = int(args[23])
+        self.likes_received = int(args[24])
+        self.institution = args[25]
+        self.group_names = [s for s in args[26].split(';')]
+
+    def __str__(self):
+        s = 'ExportUser({self.user_id}, {self.username}, {self.email})'.format(
+            self=self)
+        return s
 
 
 class ExportList(object):
