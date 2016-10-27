@@ -5,6 +5,14 @@ import json
 from collections import namedtuple
 
 
+# Map Community group names to collaboration names in Contacts DB
+GROUP_TO_COLLAB = {
+    'TSV': 'Transients'
+}
+# Map Contacts DB collaboration names to Community group names
+COLLAB_TO_GROUP = {v: k for k, v in GROUP_TO_COLLAB.items()}
+
+
 class Person(object):
     """A person in ContactsDB and Community."""
     def __init__(self, first=None, last=None, community_email=None,
@@ -193,6 +201,20 @@ class People(object):
             if collaboration_name in p.cdb_collabs and p.active is True and \
                     group_name not in p.community_groups:
                 print(p.first, p.last, p.cdb_email)
+
+    def write_invite_csv(self, filepath, group_name, topic_id):
+        """Write a CSV for inviting new users to the forum to a group
+        and specifying the invite email.
+        """
+        collaboration_name = GROUP_TO_COLLAB[group_name]
+        with open(filepath, 'w') as csvfile:
+            fieldnames = ['email', 'group', 'topic']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            for p in self.people:
+                if collaboration_name in p.cdb_collabs and p.active is False:
+                    writer.writerow({'email': p.cdb_email,
+                                     'group': group_name,
+                                     'topic': topic_id})
 
 
 ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',
