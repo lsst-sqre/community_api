@@ -181,6 +181,19 @@ class People(object):
         p.community_email = export_user.email
         p.community_groups = export_user.group_names
 
+    def list_forum_invites(self, collaboration_name, group_name):
+        """Print people to invite to a the forum for this collaboration."""
+        for p in self.people:
+            if collaboration_name in p.cdb_collabs and p.active is False:
+                print(p.first, p.last, p.cdb_email)
+
+    def list_group_invites(self, collaboration_name, group_name):
+        """People people on the forum that should be invited to the group."""
+        for p in self.people:
+            if collaboration_name in p.cdb_collabs and p.active is True and \
+                    group_name not in p.community_groups:
+                print(p.first, p.last, p.cdb_email)
+
 
 ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',
                                                  'phone', 'company',
