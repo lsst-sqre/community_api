@@ -5,24 +5,6 @@ import json
 from collections import namedtuple
 
 
-ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',
-                                                 'phone', 'company',
-                                                 'category', 'role'])
-
-
-def open_cdb_export(csv_path):
-    people = []
-    with open(csv_path, encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader)  # skip header
-        for row in reader:
-            if len(row) == 1:
-                continue
-            p = ContactDbPerson(*[s.strip() for s in row[:7]])
-            people.append(p)
-    return people
-
-
 class Person(object):
     """A person in ContactsDB and Community."""
     def __init__(self, first=None, last=None, community_email=None,
@@ -62,7 +44,7 @@ class Person(object):
             'community_email': self.community_email,
             'active': self.active,
             'cdb_email': self.cdb_email,
-            'cdb_collaborations': self.cdb_collabs,
+            'cdb_collabs': self.cdb_collabs,
             'community_groups': self.community_groups
         }
 
@@ -80,6 +62,7 @@ class Person(object):
 
 class People(object):
     """A set of people known to ContactsDB and Community."""
+
     def __init__(self, people=None):
         super().__init__()
         if people is not None:
@@ -121,9 +104,7 @@ class People(object):
                 continue
             print('Matched {discourse_user.email}'.format(
                 discourse_user=discourse_user))
-            person.community_email = discourse_user.email
-            person.active = True  # they've been seen on community
-            person.community_groups = discourse_user.group_names
+            self._import_community_export_user(person, discourse_user)
 
     def refresh_community_data(self, export_users):
         """Update Discourse/Community data about a Person who's already been
@@ -142,13 +123,11 @@ class People(object):
                 continue
 
             # refresh data
-            p.username = export_user.username
-            p.community_email = export_user.email
-            p.community_groups = export_user.group_names
+            self._import_community_export_user(p, export_user)
 
     def write_json(self, path):
         with open(path, 'w') as f:
-            json.dump(f, self.json_data, sort_keys=True, indent=2)
+            json.dump(self.json_data, f, sort_keys=True, indent=2)
 
     def get_by_cdb_email(self, email):
         for p in self.people:
@@ -168,6 +147,11 @@ class People(object):
                 return p
         return None
 
+    def import_cdb_csv(self, csv_path):
+        """Add and update people based on a ContactsDB export."""
+        cdb_people = open_cdb_export(csv_path)
+        self.import_cdb_people(cdb_people)
+
     def import_cdb_people(self, cdb_people):
         for cdb_person in cdb_people:
             existing_person = self.get_by_cdb_email(cdb_person.email)
@@ -182,3 +166,35 @@ class People(object):
                 # Make a new person
                 p = Person.from_cdb_person(cdb_person)
                 self.people.append(p)
+
+    def match_community_user(self, export_user, cdb_email):
+        """Manually match a user from community.api.ExportList to an email
+        address in ContactsDB.
+        """
+        p = self.get_by_cdb_email(cdb_email)
+        assert p is not None
+        self._import_community_export_user(p, export_user)
+
+    def _import_community_export_user(self, p, export_user):
+        p.active = True  # they've been seen on community
+        p.username = export_user.username
+        p.community_email = export_user.email
+        p.community_groups = export_user.group_names
+
+
+ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',
+                                                 'phone', 'company',
+                                                 'category', 'role'])
+
+
+def open_cdb_export(csv_path):
+    people = []
+    with open(csv_path, encoding='utf-8') as f:
+        reader = csv.reader(f)
+        next(reader)  # skip header
+        for row in reader:
+            if len(row) == 1:
+                continue
+            p = ContactDbPerson(*[s.strip() for s in row[:7]])
+            people.append(p)
+    return people
