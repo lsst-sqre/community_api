@@ -1,5 +1,7 @@
 """Lightweight attempt at tracking people from contacts db and community."""
 
+import time
+import datetime
 import csv
 import json
 from collections import namedtuple
@@ -19,7 +21,7 @@ class Person(object):
     """A person in ContactsDB and Community."""
     def __init__(self, first=None, last=None, community_email=None,
                  username=None, active=False, community_groups=None,
-                 cdb_email=None, cdb_collabs=None):
+                 cdb_email=None, cdb_collabs=None, group_invites_sent=None):
         super().__init__()
         self.first = first
         self.last = last
@@ -35,6 +37,10 @@ class Person(object):
             self.community_groups = community_groups
         else:
             self.community_groups = []
+        if group_invites_sent is not None:
+            self.group_invites_sent = group_invites_sent
+        else:
+            self.group_invites_sent = {}
 
     @classmethod
     def from_cdb_person(cls, cdb_person):
@@ -55,7 +61,8 @@ class Person(object):
             'active': self.active,
             'cdb_email': self.cdb_email,
             'cdb_collabs': self.cdb_collabs,
-            'community_groups': self.community_groups
+            'community_groups': self.community_groups,
+            'group_invites_sent': self.group_invites_sent
         }
 
     def __str__(self):
@@ -66,7 +73,9 @@ class Person(object):
         s = 'Person(username={self.username!r}, first={self.first!r}, ' \
             'last={self.last!r}, community_email={self.community_email!r}, ' \
             'active={self.active!r}, cdb_email={self.cdb_email!r}, ' \
-            'cdb_collabs={self.cdb_collabs!r})'
+            'cdb_collabs={self.cdb_collabs!r}, ' \
+            'community_groups={self.community_groups!r}), ' \
+            'group_invites_sent={self.group_invites_sent!r}'
         return s.format(self=self)
 
 
@@ -218,23 +227,33 @@ class People(object):
                                      'group': group_name,
                                      'topic': topic_id})
 
-    def invite_to_group(self, group_name, topic_id):
+    def invite_to_group(self, group_name, message_title, message, interval=60):
         """Invite all community users in this collaboration to the
         collaboration's group and the intro topic.
+
+        `message` and `message_title` are the title and markdown-formatted
+        content of a welcome message, respectively.
         """
+        _interval = 0
         collaboration_name = GROUP_TO_COLLAB[group_name]
         for p in self.people:
             if collaboration_name in p.cdb_collabs and p.active is True:
                 # user on community
+                time.sleep(_interval)
+                u = DiscourseUser.from_username(
+                    p.username, email=p.community_email)
                 if group_name not in p.community_groups:
                     # add to group
-                    u = DiscourseUser.from_username(
-                        p.username, email=p.community_email)
                     u.add_to_group(group_name)
                     p.community_groups.append(group_name)
 
                 # send an invite to the topic
-                # TODO
+                if group_name not in p.group_invites_sent:
+                    u.private_message(message_title, message)
+                    p.group_invites_sent[group_name] = \
+                        str(datetime.datetime.utcnow())
+
+                _interval = interval
 
 
 ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',

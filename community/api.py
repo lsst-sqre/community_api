@@ -39,14 +39,16 @@ def put(path, data=None, params=None):
     return r
 
 
-def post(path, data=None, params=None):
+def post(path, data=None):
     """Generic POST against the Discourse API."""
     if not path.startswith('/'):
         path = '/' + path
-    _params = {'api_key': KEY, 'api_user': USER}
-    if params is not None:
-        _params.update(params)
-    r = requests.put(BASE_URL + path, data=data, params=_params)
+    _data = {'api_key': KEY, 'api_user': USER}
+    if data is not None:
+        _data.update(data)
+    print(_data)
+    session = requests.session()
+    r = session.post(BASE_URL + path, data=_data)
     print(r.status_code)
     return r
 
@@ -129,6 +131,18 @@ class DiscourseUser(object):
             group_name=group_name, group_id=group_id)
         payload = {'usernames': self.username}
         r = put(path, data=payload)
+        return r
+
+    def private_message(self, subject, content):
+        """Send a user a private messsage."""
+        path = '/posts'
+        payload = {
+            'title': subject,
+            'raw': content,
+            'archetype': 'private_message',
+            'target_usernames': self.username
+        }
+        r = post(path, data=payload)
         return r
 
 
