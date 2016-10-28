@@ -3,7 +3,6 @@
 import os
 import csv
 import json
-from collections import namedtuple
 import requests
 
 
@@ -36,6 +35,19 @@ def put(path, data=None, params=None):
     if params is not None:
         _params.update(params)
     r = requests.put(BASE_URL + path, data=data, params=_params)
+    print(r.status_code)
+    return r
+
+
+def post(path, data=None, params=None):
+    """Generic POST against the Discourse API."""
+    if not path.startswith('/'):
+        path = '/' + path
+    _params = {'api_key': KEY, 'api_user': USER}
+    if params is not None:
+        _params.update(params)
+    r = requests.put(BASE_URL + path, data=data, params=_params)
+    print(r.status_code)
     return r
 
 
@@ -66,6 +78,16 @@ def all_users(export_csv_path):
     #         break
 
 
+def resolve_group_id(group_name):
+    """Get the ID of a group, given its name."""
+    r = get('/admin/groups.json')
+    for g in r.json():
+        if g['name'] == group_name:
+            group_id = g['name']
+            return group_id
+    raise RuntimeError('Group {0} no found'.format(group_name))
+
+
 class DiscourseUser(object):
     """A user in Discourse."""
 
@@ -79,6 +101,9 @@ class DiscourseUser(object):
 
     @classmethod
     def from_username(cls, username, email=None):
+        """Get a user from their username. Set email since it is not available
+        via the API.
+        """
         r = get('/users/{0}.json'.format(username))
         assert r.status_code == 200
         return cls(json_data=r.json(), email=email)
@@ -97,6 +122,14 @@ class DiscourseUser(object):
     @property
     def groups(self):
         return self.data['user']['groups']
+
+    def add_to_group(self, group_name):
+        group_id = resolve_group_id(group_name)
+        path = '/admin/groups/{group_id}/members.json'.format(
+            group_name=group_name, group_id=group_id)
+        payload = {'usernames': self.username}
+        r = put(path, data=payload)
+        return r
 
 
 class ExportUser(object):

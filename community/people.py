@@ -4,6 +4,8 @@ import csv
 import json
 from collections import namedtuple
 
+from .api import DiscourseUser
+
 
 # Map Community group names to collaboration names in Contacts DB
 GROUP_TO_COLLAB = {
@@ -215,6 +217,24 @@ class People(object):
                     writer.writerow({'email': p.cdb_email,
                                      'group': group_name,
                                      'topic': topic_id})
+
+    def invite_to_group(self, group_name, topic_id):
+        """Invite all community users in this collaboration to the
+        collaboration's group and the intro topic.
+        """
+        collaboration_name = GROUP_TO_COLLAB[group_name]
+        for p in self.people:
+            if collaboration_name in p.cdb_collabs and p.active is True:
+                # user on community
+                if group_name not in p.community_groups:
+                    # add to group
+                    u = DiscourseUser.from_username(
+                        p.username, email=p.community_email)
+                    u.add_to_group(group_name)
+                    p.community_groups.append(group_name)
+
+                # send an invite to the topic
+                # TODO
 
 
 ContactDbPerson = namedtuple('ContactDbPerson', ['first', 'last', 'email',
