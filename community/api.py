@@ -90,6 +90,15 @@ def resolve_group_id(group_name):
     raise RuntimeError('Group {0} no found'.format(group_name))
 
 
+def get_category_ids():
+    path = '/categories.json'
+    r = get(path)
+    data = r.json()
+    categories = {c['name']: c['id']
+                  for c in data['category_list']['categories']}
+    return categories
+
+
 class DiscourseUser(object):
     """A user in Discourse."""
 
