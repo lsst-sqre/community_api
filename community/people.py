@@ -11,7 +11,7 @@ from .api import DiscourseUser
 
 # Map Community group names to collaboration names in Contacts DB
 GROUP_TO_COLLAB = {
-    'TSV': 'Transients'
+    'TVS': 'Transients'
 }
 # Map Contacts DB collaboration names to Community group names
 COLLAB_TO_GROUP = {v: k for k, v in GROUP_TO_COLLAB.items()}
@@ -238,18 +238,22 @@ class People(object):
         collaboration_name = GROUP_TO_COLLAB[group_name]
         for p in self.people:
             if collaboration_name in p.cdb_collabs and p.active is True:
+                print(p.username)
                 # user on community
                 time.sleep(_interval)
                 u = DiscourseUser.from_username(
                     p.username, email=p.community_email)
+                print('Made user')
                 if group_name not in p.community_groups:
                     # add to group
                     u.add_to_group(group_name)
+                    print('Added to group')
                     p.community_groups.append(group_name)
 
                 # send an invite to the topic
                 if group_name not in p.group_invites_sent:
                     u.private_message(message_title, message)
+                    print('Sent invite')
                     p.group_invites_sent[group_name] = \
                         str(datetime.datetime.utcnow())
 

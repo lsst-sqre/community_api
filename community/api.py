@@ -85,7 +85,8 @@ def resolve_group_id(group_name):
     r = get('/admin/groups.json')
     for g in r.json():
         if g['name'] == group_name:
-            group_id = g['name']
+            print(g.keys())
+            group_id = g['id']
             return group_id
     raise RuntimeError('Group {0} no found'.format(group_name))
 
